@@ -15,20 +15,22 @@ namespace ET.Server
                 return;
             }
 
-            DBComponent dbComponent = session.Root().GetComponent<DBManagerComponent>().GetZoneDB(session.Zone());
-            List<AccountInfo> accountInfos = await dbComponent.Query<AccountInfo>(accountInfo => accountInfo.Account == request.Account);
-            if (accountInfos.Count <= 0) {
-                AccountInfoComponent accountInfoComponent = session.GetComponent<AccountInfoComponent>() ?? session.AddComponent<AccountInfoComponent>();
-                AccountInfo accountInfo = accountInfoComponent.AddChild<AccountInfo>();
-                accountInfo.Account = request.Account;
-                accountInfo.Password = request.Password;
-                await dbComponent.Save(accountInfo);
-            } else {
-                AccountInfo accountInfo = accountInfos[0];
-                if (accountInfo.Password != request.Password) {
-                    response.Error = ErrorCode.ERR_LoginPasswardError;
-                    CloseSession(session).Coroutine();
-                    return;
+            using (await session.Root().GetComponent<CoroutineLockComponent>().Wait(CoroutineLockType.LoginAccount, request.Account.GetLongHashCode())) {
+                DBComponent dbComponent = session.Root().GetComponent<DBManagerComponent>().GetZoneDB(session.Zone());
+                List<AccountInfo> accountInfos = await dbComponent.Query<AccountInfo>(accountInfo => accountInfo.Account == request.Account);
+                if (accountInfos.Count <= 0) {
+                    AccountInfoComponent accountInfoComponent = session.GetComponent<AccountInfoComponent>() ?? session.AddComponent<AccountInfoComponent>();
+                    AccountInfo accountInfo = accountInfoComponent.AddChild<AccountInfo>();
+                    accountInfo.Account = request.Account;
+                    accountInfo.Password = request.Password;
+                    await dbComponent.Save(accountInfo);
+                } else {
+                    AccountInfo accountInfo = accountInfos[0];
+                    if (accountInfo.Password != request.Password) {
+                        response.Error = ErrorCode.ERR_LoginPasswardError;
+                        CloseSession(session).Coroutine();
+                        return;
+                    }
                 }
             }
 
