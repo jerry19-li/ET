@@ -9,7 +9,6 @@ namespace ET
         [EntitySystem]
         private static void Awake(this CoroutineLockQueue self, int type)
         {
-            self.isStart = false;
             self.type = type;
         }
         
@@ -18,17 +17,15 @@ namespace ET
         {
             self.queue.Clear();
             self.type = 0;
-            self.isStart = false;
+            self.CurrentCoroutineLock = null;
         }
         
         public static async ETTask<CoroutineLock> Wait(this CoroutineLockQueue self, int time)
         {
-            CoroutineLock coroutineLock = null;
-            if (!self.isStart)
+            if (self.CurrentCoroutineLock == null)
             {
-                self.isStart = true;
-                coroutineLock = self.AddChild<CoroutineLock, int, long, int>(self.type, self.Id, 1, true);
-                return coroutineLock;
+                self.CurrentCoroutineLock = self.AddChild<CoroutineLock, int, long, int>(self.type, self.Id, 1, true);
+                return self.CurrentCoroutineLock;
             }
 
             WaitCoroutineLock waitCoroutineLock = WaitCoroutineLock.Create();
@@ -38,8 +35,8 @@ namespace ET
                 long tillTime = TimeInfo.Instance.ClientFrameTime() + time;
                 self.Root().GetComponent<TimerComponent>().NewOnceTimer(tillTime, TimerCoreInvokeType.CoroutineTimeout, waitCoroutineLock);
             }
-            coroutineLock = await waitCoroutineLock.Wait();
-            return coroutineLock;
+            self.CurrentCoroutineLock = await waitCoroutineLock.Wait();
+            return self.CurrentCoroutineLock;
         }
 
         // 返回值，是否找到了一个有效的协程锁
@@ -69,7 +66,19 @@ namespace ET
     {
         public int type;
 
-        public bool isStart;
+        private EntityRef<CoroutineLock> currentCoroutineLock;
+
+        public CoroutineLock CurrentCoroutineLock
+        {
+            get
+            {
+                return this.currentCoroutineLock;
+            }
+            set
+            {
+                this.currentCoroutineLock = value;
+            }
+        }
         
         public Queue<WaitCoroutineLock> queue = new();
 

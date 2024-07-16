@@ -43,9 +43,20 @@ namespace ET.Client
 
             Main2NetClient_Login main2NetClientLogin = Main2NetClient_Login.Create();
             main2NetClientLogin.OwnerFiberId = self.Fiber().Id;
-            main2NetClientLogin.Account = account;
-            main2NetClientLogin.Password = password;
+            main2NetClientLogin.Account      = account;
+            main2NetClientLogin.Password     = password;
             NetClient2Main_Login response = await self.Root().GetComponent<ProcessInnerSender>().Call(self.netClientActorId, main2NetClientLogin) as NetClient2Main_Login;
+            return response;
+        }
+        
+        public static async ETTask<NetClient2Main_LoginGame> LoginGameAsync(this ClientSenderComponent self, string account, long key,long roleId,string address)
+        {
+            Main2NetClient_LoginGame main2NetClientLoginGame = Main2NetClient_LoginGame.Create();
+            main2NetClientLoginGame.RealmKey    = key;
+            main2NetClientLoginGame.Account     = account;
+            main2NetClientLoginGame.RoleId      = roleId;
+            main2NetClientLoginGame.GateAddress = address;
+            NetClient2Main_LoginGame response = await self.Root().GetComponent<ProcessInnerSender>().Call(self.netClientActorId, main2NetClientLoginGame) as NetClient2Main_LoginGame;
             return response;
         }
 
@@ -74,6 +85,5 @@ namespace ET.Client
             }
             return response;
         }
-
     }
 }

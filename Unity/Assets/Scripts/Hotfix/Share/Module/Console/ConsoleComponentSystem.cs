@@ -32,7 +32,7 @@ namespace ET
                         return Console.In.ReadLine();
                     }, self.CancellationTokenSource.Token);
                     
-                    line = line.Trim();
+                    line = line?.Trim()??"";
 
                     switch (line)
                     {
